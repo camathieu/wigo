@@ -21,6 +21,7 @@
       <root url="file://$PROJECT_DIR$" />
       <root url="file://$PROJECT_DIR$/../../../code.google.com/p/go.tools/go/loader/testdata" />
       <root url="file://$PROJECT_DIR$/../../Sirupsen/logrus/.git" />
+      <root url="file://$PROJECT_DIR$/.idea" />
       <root url="file://$PROJECT_DIR$/../../lann/squirrel/.git" />
       <root url="file://$PROJECT_DIR$/../../../golang.org/x/tools/go/ssa/testdata" />
       <root url="file://$PROJECT_DIR$/../../../golang.org/x/tools/cmd/fiximports/testdata" />
@@ -33,7 +34,6 @@
       <root url="file://$PROJECT_DIR$/../../../golang.org/x/tools/go/ssa/interp/testdata" />
       <root url="file://$PROJECT_DIR$/../../mattn/go-sqlite3/.git" />
       <root url="file://$PROJECT_DIR$/../plik/server/public/node_modules/grunt-ng-annotate/node_modules/ng-annotate/node_modules/.bin" />
-      <root url="file://$PROJECT_DIR$/.idea" />
       <root url="file://$PROJECT_DIR$/../../../golang.org/x/tools/cmd/callgraph/testdata" />
       <root url="file://$PROJECT_DIR$/../../../golang.org/x/tools/go/ssa/ssautil/testdata" />
       <root url="file://$PROJECT_DIR$/../../mattn/go-isatty/.git" />
@@ -41,6 +41,7 @@
       <root url="file://$PROJECT_DIR$/../../../golang.org/x/tools/cmd/stringer/testdata" />
       <root url="file://$PROJECT_DIR$/../plik/server/public/node_modules/grunt-contrib-clean/node_modules/.bin" />
       <root url="file://$PROJECT_DIR$/../../../golang.org/x/tools/go/loader/testdata" />
+      <root url="file://$PROJECT_DIR$/.git" />
       <root url="file://$PROJECT_DIR$/../../tools/godep/.git" />
       <root url="file://$PROJECT_DIR$/../../../code.google.com/p/go.tools/go/ssa/ssautil/testdata" />
       <root url="file://$PROJECT_DIR$/../plik/server/public/node_modules/grunt-contrib-uglify/node_modules/maxmin/node_modules/.bin" />
@@ -51,8 +52,8 @@
       <root url="file://$PROJECT_DIR$/../../olekukonko/ts/.git" />
       <root url="file://$PROJECT_DIR$/../../../code.google.com/p/go.tools/go/ssa/interp/testdata" />
       <root url="file://$PROJECT_DIR$/../../GeertJohan/yubigo/.git" />
-      <root url="file://$PROJECT_DIR$/../plik/server/public/node_modules/grunt/node_modules/.bin" />
       <root url="file://$PROJECT_DIR$/../context/.idea" />
+      <root url="file://$PROJECT_DIR$/../plik/server/public/node_modules/grunt/node_modules/.bin" />
       <root url="file://$PROJECT_DIR$/../../codegangsta/martini/.git" />
       <root url="file://$PROJECT_DIR$/../utils/.git" />
       <root url="file://$PROJECT_DIR$/../../codegangsta/martini-contrib/.git" />
