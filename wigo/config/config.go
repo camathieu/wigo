@@ -67,6 +67,7 @@ type GeneralConfig struct {
 	ListenAddress         string
 	ProbesDirectory       string
 	ProbesConfigDirectory string
+	ProbesLibDirectory    string
 	UuidFile              string
 	LogFile               string
 	Debug                 bool
@@ -174,6 +175,7 @@ func NewConfig() (this *Config) {
 	this.Global.Group = "none"
 	this.Global.ProbesDirectory = "/usr/local/wigo/probes"
 	this.Global.ProbesConfigDirectory = "/etc/wigo/conf.d"
+	this.Global.ProbesLibDirectory = "/var/lib/wigo/lib"
 	this.Global.LogFile = "/var/log/wigo.log"
 	this.Global.UuidFile = "/var/lib/wigo/uuid"
 	this.Global.Database = "/var/lib/wigo/wigo.db"
@@ -288,4 +290,5 @@ func (c *Config) Initialize() {
 	c.AdvancedList = nil
 
 	os.Setenv("WIGO_PROBE_CONFIG_ROOT", c.Global.ProbesConfigDirectory)
+	os.Setenv("WIGO_PROBE_LIB_ROOT", c.Global.ProbesLibDirectory)
 }

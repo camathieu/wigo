@@ -133,5 +133,5 @@ local.properties
 .texlipse
 
 # Created by .ignore support plugin (hsz.mobi)
-
-wigo.conf.test
+wigo/wigo
+etc/wigo.conf.test
