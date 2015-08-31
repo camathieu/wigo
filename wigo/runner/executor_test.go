@@ -2,7 +2,6 @@ package runner
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	log "github.com/Sirupsen/logrus"
 	"io"
@@ -51,8 +50,6 @@ func setupDummyProbeConfig(pc *dummyProbeConfig) (err error) {
 	if err != nil {
 		return err
 	}
-	// Set config root
-	os.Setenv("WIGO_PROBE_CONFIG_ROOT", tmpProbeConfigDir)
 	return
 }
 
@@ -79,9 +76,11 @@ func setupProbeExecutorTest() (err error) {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Errorf(string(output))
-		err = errors.New(fmt.Sprintf("Unable to copy dummy probe from %s to %s : %s", dummyProbePath, dummyProbeTmpPath, err))
+		err = fmt.Errorf("Unable to copy dummy probe from %s to %s : %s", dummyProbePath, dummyProbeTmpPath, err)
 		return
 	}
+	// Set config root
+	os.Setenv("WIGO_PROBE_CONFIG_ROOT", tmpProbeConfigDir)
 	// Set probe lib root
 	libRoot, err := filepath.Abs("../../lib")
 	if err != nil {
@@ -172,17 +171,16 @@ func TestExecuteProbeWithDisableCode(t *testing.T) {
 		t.Fatalf("Unable to setup test : %s", err)
 	}
 	pe := NewProbeExecutor(dummyProbeTmpPath, 1)
-	pc := newDummyProbeConfig(226)
-	pc.Exit = 13
+	pc := newDummyProbeConfig(999)
 	if err := setupDummyProbeConfig(pc); err != nil {
 		t.Fatalf("Unable to setup dummy probe config : %s", err)
 	}
 	result := pe.Execute()
-	if result.ExitCode != 13 {
-		t.Fatalf("Invalid exit code %d, expected %d", result.ExitCode, -1)
+	if result.Status != 999 {
+		t.Fatalf("Invalid status %d, expected %d", result.Status, 999)
 	}
 	if pe.Enabled != false {
-		t.Fatalf("ProbeExecutor should have been disabled", result.ExitCode, -1)
+		t.Fatal("ProbeExecutor should have been disabled", result.ExitCode, -1)
 	}
 }
 

@@ -1,8 +1,8 @@
 package global
 
 import (
-	log "github.com/Sirupsen/logrus"
 	"encoding/json"
+	log "github.com/Sirupsen/logrus"
 	"github.com/root-gg/wigo/wigo/runner"
 	"time"
 )

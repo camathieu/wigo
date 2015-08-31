@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-const validJsonResult = `
+const validJSONResult = `
 {
    "version" : "0.26",
    "status" : 226,
@@ -23,7 +23,7 @@ const validJsonResult = `
 }
 `
 
-const invalidJsonResult = `
+const invalidJSONResult = `
 {
    this is invalid json
 }
@@ -58,7 +58,7 @@ func TestNewResult(t *testing.T) {
 }
 
 func TestNewResultFromJson(t *testing.T) {
-	pr, err := NewProbeResultFromJson("path/to/dummy.pl", []byte(validJsonResult))
+	pr, err := NewProbeResultFromJSON("path/to/dummy.pl", []byte(validJSONResult))
 	if err != nil {
 		t.Fatalf("Unable to deserialize valid json result : %s", err)
 	}
@@ -81,7 +81,7 @@ func TestNewResultFromJson(t *testing.T) {
 }
 
 func TestNewResultFromInvalidJson(t *testing.T) {
-	_, err := NewProbeResultFromJson("path/to/dummy.pl", []byte(invalidJsonResult))
+	_, err := NewProbeResultFromJSON("path/to/dummy.pl", []byte(invalidJSONResult))
 	if err != nil {
 		return
 	}

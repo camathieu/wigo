@@ -7,6 +7,7 @@ import (
 	"time"
 )
 
+// ProbeResult is the result from a probe execution
 type ProbeResult struct {
 	Path      string `json:"path"`
 	Name      string `json:"name"`
@@ -14,16 +15,17 @@ type ProbeResult struct {
 	Message   string `json:"message"`
 	Timestamp int64  `json:"timestamp"`
 
-	Metrics interface{} `json:"metrics",omitempty`
-	Details interface{} `json:"details",omitempty`
+	Metrics interface{} `json:"metrics,omitempty"`
+	Details interface{} `json:"details,omitempty"`
 
 	Status   int    `json:"status"`
 	Level    string `json:"level"`
 	ExitCode int    `json:"exitCode"`
-	Stdout   string `json:"stdout",omitempty`
-	Stderr   string `json:"stderr",omitempty`
+	Stdout   string `json:"stdout,omitempty"`
+	Stderr   string `json:"stderr,omitempty"`
 }
 
+// NewProbeResult create a new handcrafted ProbeResult
 func NewProbeResult(path string, status int, exitCode int, message string, details string) (probeResult *ProbeResult) {
 	probeResult = new(ProbeResult)
 
@@ -41,7 +43,8 @@ func NewProbeResult(path string, status int, exitCode int, message string, detai
 	return
 }
 
-func NewProbeResultFromJson(path string, bytes []byte) (probeResult *ProbeResult, err error) {
+// NewProbeResultFromJSON create a new ProbeResult from a probe output
+func NewProbeResultFromJSON(path string, bytes []byte) (probeResult *ProbeResult, err error) {
 	probeResult = new(ProbeResult)
 
 	err = json.Unmarshal(bytes, probeResult)
@@ -49,16 +52,20 @@ func NewProbeResultFromJson(path string, bytes []byte) (probeResult *ProbeResult
 		return
 	}
 
+	// Override untrusted fields
 	probeResult.Path = path
 	probeResult.Name = pathUtil.Base(path)
 	probeResult.Timestamp = time.Now().Unix()
 	probeResult.ExitCode = 0
+	probeResult.Stdout = ""
+	probeResult.Stderr = ""
 
 	probeResult.Level = utils.StatusCodeToString(probeResult.Status)
 
 	return
 }
 
-func (pr *ProbeResult) ToJson() (bytes []byte, err error) {
+// ToJSON serialize a ProbeResult to json
+func (pr *ProbeResult) ToJSON() (bytes []byte, err error) {
 	return json.Marshal(pr)
 }

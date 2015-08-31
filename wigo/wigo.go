@@ -6,7 +6,6 @@ import (
 	"github.com/root-gg/wigo/wigo/config"
 	"net/http"
 	"os"
-	"github.com/root-gg/wigo/wigo/runner"
 )
 
 func main() {
@@ -31,14 +30,4 @@ func main() {
 		}()
 	}
 
-	pdwChannel := make(chan *runner.WatcherEvent)
-	go func() {
-		for {
-			event := <- pdwChannel
-
-		}
-	}()
-	pdw := runner.NewProbeDirectoryWatcher(pdwChannel)
 }
-
-

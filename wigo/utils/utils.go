@@ -1,5 +1,6 @@
 package utils
 
+// StatusCodeToString convert status code to string
 func StatusCodeToString(status int) string {
 	if status == 100 {
 		return "OK"

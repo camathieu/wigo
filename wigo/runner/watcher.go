@@ -5,31 +5,16 @@ import (
 	"github.com/howeyc/fsnotify"
 	"io/ioutil"
 	"os"
-	pathUtil "path"
-	"strconv"
+	"sync"
 )
 
-type WatcherEventType int
-
-const (
-	AddProbeDirectory    = iota
-	RemoveProbeDirectory = iota
-	AddProbe             = iota
-	RemoveProbe          = iota
-)
-
-type WatcherEvent struct {
-	eventType WatcherEventType
-	path      string
-	isNew     bool
-}
-
-func NewWatcherEvent(eventType WatcherEventType, path string, isNew bool) (we *WatcherEvent) {
-	we = new(WatcherEvent)
-	we.eventType = eventType
-	we.path = path
-	we.isNew = isNew
-	return
+// EventHandler is an interface to handle events from
+// the directory watcher
+type EventHandler interface {
+	AddDirectory(path string, isNew bool)
+	RemoveDirectory(path string)
+	AddProbe(path string, isNew bool)
+	RemoveProbe(path string)
 }
 
 // ProbeDirectoryWatcher watchs for probe directories.
@@ -41,17 +26,18 @@ type ProbeDirectoryWatcher struct {
 	path        string
 	directories map[string]*ProbeDirectory
 	watcher     *fsnotify.Watcher
-	events      chan *WatcherEvent
+	handler     EventHandler
 	stop        chan struct{}
+	lock        sync.Mutex
 }
 
 // NewProbeDirectoryWatcher creates a new ProbeDirectoryWatcher instance
-func NewProbeDirectoryWatcher(path string, events chan *WatcherEvent) (w *ProbeDirectoryWatcher, err error) {
+func NewProbeDirectoryWatcher(path string, handler EventHandler) (w *ProbeDirectoryWatcher, err error) {
 	log.Debug("New probe directory watcher : " + path)
 
 	w = new(ProbeDirectoryWatcher)
 	w.directories = make(map[string]*ProbeDirectory)
-	w.events = events
+	w.handler = handler
 	w.stop = make(chan struct{})
 	w.path = path
 
@@ -151,30 +137,20 @@ func (w *ProbeDirectoryWatcher) Shutdown() (err error) {
 }
 
 // Add a new probe directory to watch
-func (w *ProbeDirectoryWatcher) addDirectory(path string, new bool) (err error) {
-	// Check if directory exists already
+func (w *ProbeDirectoryWatcher) addDirectory(path string, isNew bool) (err error) {
+	// Check if directory exists
 	if _, ok := w.directories[path]; ok {
 		log.Warn("Probe directory %s has already been added. Discarding", path)
 		return
 	}
 
-	// Extract execution delay from directory name
-	dirname := pathUtil.Base(path)
-	_, err = strconv.Atoi(dirname)
-	if err != nil {
-		if dirname != "examples" {
-			log.Warnf("Probe directory %s is not numeric. Discarding.", dirname)
-		}
-		return
-	}
-
 	// Create ProbeDirectory
-	pd, err := newProbeDirectory(path, w.events)
+	pd, err := newProbeDirectory(path, w.handler)
 	if err != nil {
 		return
 	}
 	w.directories[path] = pd
-	w.events <- NewWatcherEvent(AddProbeDirectory, path, new)
+	w.handler.AddDirectory(path, isNew)
 	return
 }
 
@@ -188,14 +164,21 @@ func (w *ProbeDirectoryWatcher) removeDirectory(path string) {
 		return
 	}
 
-	if _, ok := w.directories[path]; !ok {
-		log.Warnf("Probe directory %s is not present. Discarding", path)
+	w.lock.Lock()
+	defer w.lock.Unlock()
+
+	// Check if directory exists
+	if pd, ok := w.directories[path]; ok {
+		pd.shutdown()
+		for probePath := range pd.probes {
+			pd.removeProbe(probePath)
+		}
+		delete(w.directories, path)
+		w.handler.RemoveDirectory(path)
 		return
 	}
 
-	w.directories[path].shutdown()
-	delete(w.directories, path)
-	w.events <- NewWatcherEvent(RemoveProbeDirectory, path, false)
+	log.Warnf("Probe directory %s is not present. Discarding", path)
 	return
 }
 
@@ -204,17 +187,20 @@ func (w *ProbeDirectoryWatcher) removeDirectory(path string) {
 type ProbeDirectory struct {
 	path    string
 	watcher *fsnotify.Watcher
-	events  chan *WatcherEvent
+	handler EventHandler
+	probes  map[string]bool
 	stop    chan struct{}
+	lock    sync.Mutex
 }
 
 // NewProbeDirectory create a new ProbeDirectory instance
-func newProbeDirectory(path string, events chan *WatcherEvent) (pd *ProbeDirectory, err error) {
+func newProbeDirectory(path string, handler EventHandler) (pd *ProbeDirectory, err error) {
 	log.Debug("New probe directory : " + path)
 
 	pd = new(ProbeDirectory)
 	pd.path = path
-	pd.events = events
+	pd.handler = handler
+	pd.probes = make(map[string]bool)
 	pd.stop = make(chan struct{})
 
 	// check if the probe directory exist
@@ -244,7 +230,7 @@ func newProbeDirectory(path string, events chan *WatcherEvent) (pd *ProbeDirecto
 	// Keep only files
 	for _, f := range files {
 		if !f.IsDir() {
-			pd.events <- NewWatcherEvent(AddProbe, pd.path+"/"+f.Name(), false)
+			pd.addProbe(pd.path+"/"+f.Name(), false)
 		}
 	}
 
@@ -277,9 +263,6 @@ func (pd *ProbeDirectory) watch() (err error) {
 				pd.watcher.Close()
 				break loop
 			case ev := <-pd.watcher.Event:
-				if ev.Name == pd.path {
-					continue
-				}
 				if ev.IsCreate() {
 					fileInfo, err := os.Stat(ev.Name)
 					if err != nil {
@@ -287,12 +270,12 @@ func (pd *ProbeDirectory) watch() (err error) {
 						continue
 					}
 					if !fileInfo.IsDir() {
-						pd.events <- NewWatcherEvent(AddProbe, ev.Name, true)
+						pd.addProbe(ev.Name, true)
 					}
 				} else if ev.IsDelete() {
-					pd.events <- NewWatcherEvent(RemoveProbe, ev.Name, false)
+					pd.removeProbe(ev.Name)
 				} else if ev.IsRename() {
-					pd.events <- NewWatcherEvent(RemoveProbe, ev.Name, false)
+					pd.removeProbe(ev.Name)
 				}
 			case err := <-pd.watcher.Error:
 				log.Warn("%s fsnotify watcher error : %s", pd.path, err)
@@ -301,6 +284,39 @@ func (pd *ProbeDirectory) watch() (err error) {
 		}
 	}()
 
+	return
+}
+
+// Add a new probe to the probe list
+func (pd *ProbeDirectory) addProbe(path string, isNew bool) (err error) {
+	// Check if probe exists
+	if _, ok := pd.probes[path]; ok {
+		log.Warn("Probe %s has already been added. Discarding", path)
+		return
+	}
+	pd.probes[path] = true
+	pd.handler.AddProbe(path, isNew)
+	return
+}
+
+// Add a new probe to the probe list
+func (pd *ProbeDirectory) removeProbe(path string) (err error) {
+	if path == pd.path {
+		return
+	}
+
+	// Avoid race condition between check and delete
+	pd.lock.Lock()
+	defer pd.lock.Unlock()
+
+	// Check if probe exists
+	if _, ok := pd.probes[path]; ok {
+		delete(pd.probes, path)
+		pd.handler.RemoveProbe(path)
+		return
+	}
+
+	log.Warnf("Probe directory %s is not present. Discarding", path)
 	return
 }
 
