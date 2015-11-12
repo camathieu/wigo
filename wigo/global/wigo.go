@@ -5,6 +5,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/root-gg/wigo/wigo/runner"
 	"time"
+	"sync"
 )
 
 type Wigo struct {
@@ -16,6 +17,8 @@ type Wigo struct {
 	Probes     map[string]*runner.ProbeResult `json:"probes"`
 	Remotes    map[string]*Wigo               `json:"remotes"`
 	lastUpdate int64
+
+	lock		sync.Mutex
 }
 
 func NewWigo() (w *Wigo) {
@@ -33,6 +36,8 @@ func NewWigoFromJson(bytes []byte) (w *Wigo, err error) {
 	return
 }
 
+// UpdateStatus recompute wigo status based on local probes status
+// TODO < 100 statuses ???
 func (w *Wigo) updateStatus() (status int) {
 	for _, probe := range w.Probes {
 		if probe.Status > status {
@@ -43,9 +48,19 @@ func (w *Wigo) updateStatus() (status int) {
 	return
 }
 
-func (w *Wigo) UpdateProbe(result *runner.ProbeResult) (oldResult *runner.ProbeResult, err error) {
+func (w *Wigo) UpdateProbe(result *runner.ProbeResult) (oldResult *runner.ProbeResult) {
+	w.lock.Lock()
+	defer w.lock.Unlock()
+
+	log.Debugf("Got status %d for probe %s", result.Status, result.Path)
 	oldResult = w.Probes[result.Name]
-	w.Probes[result.Name] = result
+
+	// 999 is a special status to remove a probe
+	if result.Status == 999 {
+		delete(w.Probes, result.Name)
+	} else {
+		w.Probes[result.Name] = result
+	}
 	w.updateStatus()
 	return
 }
@@ -53,11 +68,11 @@ func (w *Wigo) UpdateProbe(result *runner.ProbeResult) (oldResult *runner.ProbeR
 func (w *Wigo) Deduplicate(remoteWigo *Wigo) {
 	for uuid, wigo := range remoteWigo.Remotes {
 		if uuid != wigo.Uuid {
-			log.Warnf("Remote wigo %s with uuid %s from %s mismatch ...", wigo.Hostname(), wigo.Uuid(), remoteWigo.Hostname())
+			log.Warnf("Remote wigo %s with uuid %s from %s mismatch ...", wigo.Hostname, wigo.Uuid, remoteWigo.Hostname)
 			delete(remoteWigo.Remotes, uuid)
 		}
 		if w.Uuid == wigo.Uuid {
-			log.Debugf("Removing local wigo from %s remotes.", remoteWigo.Hostname())
+			log.Debugf("Removing local wigo from %s remotes.", remoteWigo.Hostname)
 			delete(remoteWigo.Remotes, uuid)
 		}
 		if _, ok := w.Remotes[uuid]; ok {
@@ -69,12 +84,16 @@ func (w *Wigo) Deduplicate(remoteWigo *Wigo) {
 	return
 }
 
-func (w *Wigo) UpdateRemoteWigo(wigo *Wigo) (oldWigo *Wigo, err error) {
-	if wigo.Uuid == w.Uuid {
+func (w *Wigo) UpdateRemoteWigo(remoteWigo *Wigo) (oldWigo *Wigo, err error) {
+	w.lock.Lock()
+	defer w.lock.Unlock()
+
+	if remoteWigo.Uuid == w.Uuid {
 		return
 	}
-	wigo.lastUpdate = time.Now().Unix()
-	oldWigo = w.Remotes[wigo.Uuid]
-	w.Probes[wigo.Uuid] = wigo
+	w.Deduplicate(remoteWigo)
+	remoteWigo.lastUpdate = time.Now().Unix()
+	oldWigo = w.Remotes[remoteWigo.Uuid]
+	w.Remotes[remoteWigo.Uuid] = remoteWigo
 	return
 }

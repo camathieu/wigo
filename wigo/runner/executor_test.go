@@ -103,6 +103,12 @@ func TestExecuteProbe(t *testing.T) {
 	if result.Message != "dummy" {
 		t.Fatalf("Invalid message %s, expected %s", result.Message, "dummy")
 	}
+	if result.Path != dummyProbeTmpPath {
+		t.Fatalf("Invalid probe path %s, expected %s", result.Path, dummyProbeTmpPath)
+	}
+	if result.Name != "dummy" {
+		t.Fatalf("Invalid probe path %s, expected %s", result.Path, "dummy")
+	}
 }
 
 func TestExecuteProbeWithConfig(t *testing.T) {
@@ -135,8 +141,8 @@ func TestExecuteProbeWithTimeout(t *testing.T) {
 		t.Fatalf("Unable to setup dummy probe config : %s", err)
 	}
 	result := pe.Execute()
-	if result.Status != 502 {
-		t.Fatalf("Invalid status %d, expected %d", result.Status, 500)
+	if result.Status != 997 {
+		t.Fatalf("Invalid status %d, expected %d", result.Status, 997)
 	}
 	if result.ExitCode != -1 {
 		t.Fatalf("Invalid exit code %d, expected %d", result.ExitCode, -1)
@@ -163,24 +169,6 @@ func TestExecuteProbeWithExitCode(t *testing.T) {
 	}
 	if result.Stderr != "error" {
 		t.Fatalf("Invalid stderr output %s, expected %s", result.Stderr, "error")
-	}
-}
-
-func TestExecuteProbeWithDisableCode(t *testing.T) {
-	if err := setupProbeExecutorTest(); err != nil {
-		t.Fatalf("Unable to setup test : %s", err)
-	}
-	pe := NewProbeExecutor(dummyProbeTmpPath, 1)
-	pc := newDummyProbeConfig(999)
-	if err := setupDummyProbeConfig(pc); err != nil {
-		t.Fatalf("Unable to setup dummy probe config : %s", err)
-	}
-	result := pe.Execute()
-	if result.Status != 999 {
-		t.Fatalf("Invalid status %d, expected %d", result.Status, 999)
-	}
-	if pe.Enabled != false {
-		t.Fatal("ProbeExecutor should have been disabled", result.ExitCode, -1)
 	}
 }
 

@@ -55,6 +55,7 @@ func (pr *ProbeRunner) AddProbe(path string, isNew bool) {
 		return
 	}
 
+
 	pe := NewProbeExecutor(path, timeout)
 	pe.Run(pr.resultChannel)
 	pr.executors[path] = pe
@@ -69,6 +70,7 @@ func (pr *ProbeRunner) RemoveProbe(path string) {
 	if _, ok := pr.executors[path]; ok {
 		pr.executors[path].Shutdown()
 		delete(pr.executors, path)
+		pr.resultChannel <- NewProbeResult(path, 999, -1, "Probe has been removed", "")
 		return
 	}
 
@@ -80,4 +82,5 @@ func (pr *ProbeRunner) Shutdown() {
 	for _, pe := range pr.executors {
 		pe.Shutdown()
 	}
+	close(pr.resultChannel)
 }

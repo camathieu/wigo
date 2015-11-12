@@ -134,4 +134,4 @@ local.properties
 
 # Created by .ignore support plugin (hsz.mobi)
 wigo/wigo
-etc/wigo.conf.test
+config/wigo.conf.test

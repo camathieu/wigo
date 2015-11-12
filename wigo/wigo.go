@@ -7,14 +7,17 @@ import (
 	"net/http"
 	"os"
 	"github.com/root-gg/wigo/wigo/runner"
+	"github.com/root-gg/wigo/wigo/global"
 	"github.com/root-gg/utils"
 )
 
+var wigo *global.Wigo
+
 func main() {
-	log.Infof("Hello wigo")
+	log.Info("Hello wigo")
 
 	// Parse command line arguments
-	var configFile = flag.String("config", "/etc/wigo/wigo.conf", "Configuration file (default: /etc/wigo/wigo.conf")
+	var configFile = flag.String("config", "/etc/wigo/wigo.conf", "Configuration file (default: /etc/wigo/wigo.conf)")
 	flag.Parse()
 
 	// Load config
@@ -32,6 +35,10 @@ func main() {
 		}()
 	}
 
+	// Create local wigo
+	wigo = global.NewWigo()
+	wigo.Hostname = config.GetConfig().Global.Hostname
+
 	// Start local probe runner
 	pr, err := runner.NewProbeRunner(config.GetConfig().Global.ProbesDirectory)
 	if err != nil {
@@ -39,8 +46,29 @@ func main() {
 		os.Exit(1)
 	}
 
-	for {
-		result := <- pr.Results()
-		utils.Dump(result)
+	// Handle local probe results
+	go func(){
+		for {
+			result := <- pr.Results()
+			oldResult := wigo.UpdateProbe(result)
+			compareProbeResults(oldResult,result)
+		}
+	}()
+
+	select{}
+}
+
+func compareProbeResults(old *runner.ProbeResult, new *runner.ProbeResult){
+	if old.Status != new.Status {
+//		notify.Handle(old,new)
+//		log.Handle(old,new)
 	}
+}
+
+func compareWigo(old *global.Wigo, new *global.Wigo){
+
+}
+
+func saveMetrics(pr *runner.ProbeResult){
+
 }

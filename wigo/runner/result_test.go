@@ -36,8 +36,8 @@ func TestNewResult(t *testing.T) {
 		t.Fatalf("Invalid probe path %s, expected %s", pr.Path, "path/to/dummy.pl")
 	}
 
-	if pr.Name != "dummy.pl" {
-		t.Fatalf("Invalid probe name %s, expected %s", pr.Name, "dummy.pl")
+	if pr.Name != "dummy" {
+		t.Fatalf("Invalid probe name %s, expected %s", pr.Name, "dummy")
 	}
 
 	if pr.Status != 226 {
@@ -58,7 +58,7 @@ func TestNewResult(t *testing.T) {
 }
 
 func TestNewResultFromJson(t *testing.T) {
-	pr, err := NewProbeResultFromJSON("path/to/dummy.pl", []byte(validJSONResult))
+	pr, err := NewProbeResultFromJSON([]byte(validJSONResult))
 	if err != nil {
 		t.Fatalf("Unable to deserialize valid json result : %s", err)
 	}
@@ -81,7 +81,7 @@ func TestNewResultFromJson(t *testing.T) {
 }
 
 func TestNewResultFromInvalidJson(t *testing.T) {
-	_, err := NewProbeResultFromJSON("path/to/dummy.pl", []byte(invalidJSONResult))
+	_, err := NewProbeResultFromJSON([]byte(invalidJSONResult))
 	if err != nil {
 		return
 	}

@@ -10,6 +10,7 @@ import (
 	"path"
 	"syscall"
 	"time"
+	"sync"
 )
 
 // ProbeExecutor manage running probes and
@@ -18,6 +19,7 @@ type ProbeExecutor struct {
 	Path    string
 	Timeout int
 	Enabled bool
+	lock	sync.Mutex
 }
 
 // NewProbeExecutor create a new ProbeExecutor instance
@@ -37,8 +39,13 @@ func (pe *ProbeExecutor) Run(resultChannel chan *ProbeResult) (err error) {
 			timer := utils.NewSplitTime(pe.Path)
 			timer.Start()
 			result := pe.Execute()
-			resultChannel <- result
-			if !pe.Enabled {
+			if pe.Enabled {
+				resultChannel <- result
+				if result.Status == 999 {
+					pe.Shutdown()
+					break
+				}
+			} else {
 				break
 			}
 			timer.Stop()
@@ -52,7 +59,7 @@ func (pe *ProbeExecutor) Run(resultChannel chan *ProbeResult) (err error) {
 }
 
 // Execute the probe and always return a ProbeResult. If an error
-// occured the ProbeResult is handcrafted with the cause.
+// occurred the ProbeResult is handcrafted with the cause.
 func (pe *ProbeExecutor) Execute() (probeResult *ProbeResult) {
 	log.Debugf("Executing probe %s", pe.Path)
 
@@ -60,14 +67,14 @@ func (pe *ProbeExecutor) Execute() (probeResult *ProbeResult) {
 	fileInfo, err := os.Stat(pe.Path)
 	if err != nil {
 		log.Warnf("Failed to stat probe %s : %s", pe.Path, err)
-		NewProbeResult(pe.Path, 501, -1, fmt.Sprintf("Failed to stat probe : %s", err), "")
+		probeResult = NewProbeResult(pe.Path, 999, -1, fmt.Sprintf("Failed to stat probe : %s", err), "")
 		return
 	}
 
 	// Check if probe executable
 	if m := fileInfo.Mode(); m&0111 == 0 {
 		log.Warnf("Probe %s is not executable : %s", pe.Path, m.Perm().String())
-		NewProbeResult(pe.Path, 501, -1, fmt.Sprintf("Probe is not executable : %s", m.Perm().String()), "")
+		probeResult = NewProbeResult(pe.Path, 998, -1, fmt.Sprintf("Probe is not executable : %s", m.Perm().String()), "")
 		return
 	}
 
@@ -99,22 +106,21 @@ func (pe *ProbeExecutor) Execute() (probeResult *ProbeResult) {
 		} else {
 			log.Warnf("Probe %s with pid %d killed", pe.Path, cmd.Process.Pid)
 		}
-		probeResult = NewProbeResult(pe.Path, 502, -1, fmt.Sprintf("Probe timed out after %ds", pe.Timeout), "")
+		probeResult = NewProbeResult(pe.Path, 997, -1, fmt.Sprintf("Probe timed out after %ds", pe.Timeout), "")
 	case err = <-done:
 		// Check if probe has been executed successfully
 		if err == nil {
 			// Get result from probe output
-			probeResult, err = NewProbeResultFromJSON(pe.Path, stdout.Bytes())
+			probeResult, err = NewProbeResultFromJSON(stdout.Bytes())
 			if err != nil {
 				log.Warnf("Probe %s unable to deserialize probe result : %s", pe.Path, err)
-				probeResult = NewProbeResult(pe.Path, 503, -1, fmt.Sprintf("Unable to deserialize probe result : %s", err), "")
+				probeResult = NewProbeResult(pe.Path, 996, -1, fmt.Sprintf("Unable to deserialize probe result : %s", err), "")
 				probeResult.Stdout = string(stdout.Bytes())
 				probeResult.Stderr = string(stderr.Bytes())
 				return
 			}
-			if probeResult.Status == 999 {
-				pe.Enabled = false
-			}
+			probeResult.Clean()
+			probeResult.SetName(pe.Path)
 		} else {
 			// Get exit code
 			exitCode := 1
@@ -132,6 +138,7 @@ func (pe *ProbeExecutor) Execute() (probeResult *ProbeResult) {
 
 			log.Warnf("Probe %s exit code %d", pe.Path, exitCode)
 			probeResult = NewProbeResult(pe.Path, 500, exitCode, fmt.Sprintf("Exit code %d", exitCode), "")
+			probeResult.Stdout = string(stdout.Bytes())
 			probeResult.Stderr = string(stderr.Bytes())
 
 			return

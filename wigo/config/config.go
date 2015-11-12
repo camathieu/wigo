@@ -174,7 +174,7 @@ func NewConfig() (this *Config) {
 	this.Global.Hostname = ""
 	this.Global.Group = "none"
 	this.Global.ProbesDirectory = "/usr/local/wigo/probes"
-	this.Global.ProbesConfigDirectory = "/etc/wigo/conf.d"
+	this.Global.ProbesConfigDirectory = "/etc/wigo/conf.probes"
 	this.Global.ProbesLibDirectory = "/var/lib/wigo/lib"
 	this.Global.LogFile = "/var/log/wigo.log"
 	this.Global.UuidFile = "/var/lib/wigo/uuid"

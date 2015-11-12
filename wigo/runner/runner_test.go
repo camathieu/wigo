@@ -184,8 +184,15 @@ func TestRemoveProbeRunner(t *testing.T) {
 		t.Fatalf("Unable to remove dummy probe %s : %s", tmpDummyProbePath, err)
 	}
 
-	// Wait for fsnotify event to be triggered and processed
-	time.Sleep(time.Duration(100) * time.Millisecond)
+	// Wait for probe result
+	select {
+	case	<- time.After(time.Second):
+		t.Fatal("Timeout waiting for probe result")
+	case	result := <- pr.Results():
+		if result.Status != 999 {
+			t.Fatal("Invalid probe status %d expected %d", result.Status, 999)
+		}
+	}
 
 	if _, ok := pr.executors[tmpDummyProbePath] ; ok {
 		t.Fatalf("Probe executor still present for %s", tmpDummyProbePath)
@@ -212,10 +219,28 @@ func TestRemoveProbeDirectoryRunner(t *testing.T) {
 	}
 	defer pr.Shutdown()
 
-	// Remove dummy probe
+	// Remove dummy probe directory
 	err = os.RemoveAll(tmpProbeDirectory1)
 	if err != nil {
 		t.Fatalf("Unable to remove dummy probe %s : %s", tmpDummyProbePath, err)
+	}
+
+	done := make(chan struct {})
+	go func(){
+		for result := range pr.Results() {
+			log.Infof("%v",result)
+			if result.Status == 999 {
+				done <- struct {}{}
+			}
+		}
+	}()
+
+	// Wait for probe result
+	select {
+	case	<- time.After(time.Second):
+		t.Fatal("Timeout waiting for probe result")
+	case	<- done:
+		break
 	}
 
 	// Wait for fsnotify event to be triggered and processed

@@ -12,7 +12,7 @@ func TestNewConfig(t *testing.T) {
 }
 
 func TestLoadDefaultConfig(t *testing.T) {
-	if err := LoadConfig("../../etc/wigo.conf"); err != nil {
+	if err := LoadConfig("../../config/wigo.conf"); err != nil {
 		t.Fatal(err)
 	}
 	if GetConfig() == nil {

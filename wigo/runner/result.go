@@ -5,6 +5,7 @@ import (
 	"github.com/root-gg/wigo/wigo/utils"
 	pathUtil "path"
 	"time"
+	"path/filepath"
 )
 
 // ProbeResult is the result from a probe execution
@@ -26,41 +27,34 @@ type ProbeResult struct {
 }
 
 // NewProbeResult create a new handcrafted ProbeResult
-func NewProbeResult(path string, status int, exitCode int, message string, details string) (probeResult *ProbeResult) {
-	probeResult = new(ProbeResult)
+func NewProbeResult(path string, status int, exitCode int, message string, details string) (pr *ProbeResult) {
+	pr = new(ProbeResult)
 
-	probeResult.Path = path
-	probeResult.Name = pathUtil.Base(path)
+	// Set Path and Name
+	pr.SetName(path)
 
-	probeResult.Status = status
-	probeResult.ExitCode = exitCode
-	probeResult.Message = message
-	probeResult.Details = details
-	probeResult.Timestamp = time.Now().Unix()
+	pr.Status = status
+	pr.ExitCode = exitCode
+	pr.Message = message
+	pr.Details = details
+	pr.Timestamp = time.Now().Unix()
 
-	probeResult.Level = utils.StatusCodeToString(probeResult.Status)
+	pr.Level = utils.StatusCodeToString(pr.Status)
 
 	return
 }
 
-// NewProbeResultFromJSON create a new ProbeResult from a probe output
-func NewProbeResultFromJSON(path string, bytes []byte) (probeResult *ProbeResult, err error) {
-	probeResult = new(ProbeResult)
+// NewProbeResultFromJSON create a new ProbeResult from JSON
+func NewProbeResultFromJSON(bytes []byte) (pr *ProbeResult, err error) {
+	pr = new(ProbeResult)
 
-	err = json.Unmarshal(bytes, probeResult)
+	err = json.Unmarshal(bytes, pr)
 	if err != nil {
 		return
 	}
 
-	// Override untrusted fields
-	probeResult.Path = path
-	probeResult.Name = pathUtil.Base(path)
-	probeResult.Timestamp = time.Now().Unix()
-	probeResult.ExitCode = 0
-	probeResult.Stdout = ""
-	probeResult.Stderr = ""
-
-	probeResult.Level = utils.StatusCodeToString(probeResult.Status)
+	// Override status string
+	pr.Level = utils.StatusCodeToString(pr.Status)
 
 	return
 }
@@ -68,4 +62,23 @@ func NewProbeResultFromJSON(path string, bytes []byte) (probeResult *ProbeResult
 // ToJSON serialize a ProbeResult to json
 func (pr *ProbeResult) ToJSON() (bytes []byte, err error) {
 	return json.Marshal(pr)
+}
+
+// SetName set probe name from path and remove extension if any
+func (pr *ProbeResult) SetName(path string){
+	pr.Path = path
+	fileName := pathUtil.Base(path)
+	ext := filepath.Ext(fileName)
+	pr.Name = fileName[0:len(fileName)-len(ext)]
+}
+
+// Clean override untrusted fields
+func (pr *ProbeResult) Clean(){
+	pr.Path = ""
+	pr.Name = ""
+	pr.Timestamp = time.Now().Unix()
+	pr.ExitCode = 0
+	pr.Stdout = ""
+	pr.Stderr = ""
+	pr.Level = utils.StatusCodeToString(pr.Status)
 }
