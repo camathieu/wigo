@@ -48,6 +48,20 @@ func (w *Wigo) updateStatus() (status int) {
 	return
 }
 
+func (w *Wigo) RegisterProbe(probe *Probe) {
+	w.lock.Lock()
+	defer w.lock.Unlock()
+
+	w.Probes[probe.Name] = probe
+}
+
+func (w *Wigo) UnregisterProbe(probe *Probe) {
+	w.lock.Lock()
+	defer w.lock.Unlock()
+
+	delete(w.Probes,probe.name)
+}
+
 func (w *Wigo) UpdateProbe(result *runner.ProbeResult) (oldResult *runner.ProbeResult) {
 	w.lock.Lock()
 	defer w.lock.Unlock()

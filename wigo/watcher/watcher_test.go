@@ -1,4 +1,4 @@
-package runner
+package watcher
 
 import (
 	log "github.com/Sirupsen/logrus"

@@ -1,4 +1,4 @@
-package runner
+package watcher
 
 import (
 	log "github.com/Sirupsen/logrus"
@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"sync"
+	"github.com/root-gg/wigo/wigo/global"
 )
 
 // EventHandler is an interface to handle events from
@@ -13,8 +14,8 @@ import (
 type EventHandler interface {
 	AddDirectory(path string, isNew bool)
 	RemoveDirectory(path string)
-	AddProbe(path string, isNew bool)
-	RemoveProbe(path string)
+	AddProbe(ProbeConfig string, isNew bool)
+	RemoveProbe(ProbeConfig string)
 }
 
 // ProbeDirectoryWatcher watchs for probe directories.

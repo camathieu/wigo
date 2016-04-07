@@ -1,4 +1,4 @@
-package runner
+package executor
 
 import (
 	"encoding/json"
@@ -10,8 +10,6 @@ import (
 
 // ProbeResult is the result from a probe execution
 type ProbeResult struct {
-	Path      string `json:"path"`
-	Name      string `json:"name"`
 	Version   string `json:"version"`
 	Message   string `json:"message"`
 	Timestamp int64  `json:"timestamp"`
@@ -27,11 +25,11 @@ type ProbeResult struct {
 }
 
 // NewProbeResult create a new handcrafted ProbeResult
-func NewProbeResult(path string, status int, exitCode int, message string, details string) (pr *ProbeResult) {
+func NewProbeResult(status int, exitCode int, message string, details string) (pr *ProbeResult) {
 	pr = new(ProbeResult)
 
 	// Set Path and Name
-	pr.SetName(path)
+//	pr.SetName(path)
 
 	pr.Status = status
 	pr.ExitCode = exitCode
@@ -64,18 +62,18 @@ func (pr *ProbeResult) ToJSON() (bytes []byte, err error) {
 	return json.Marshal(pr)
 }
 
-// SetName set probe name from path and remove extension if any
-func (pr *ProbeResult) SetName(path string){
-	pr.Path = path
-	fileName := pathUtil.Base(path)
-	ext := filepath.Ext(fileName)
-	pr.Name = fileName[0:len(fileName)-len(ext)]
-}
+//// SetName set probe name from path and remove extension if any
+//func (pr *ProbeResult) SetName(path string){
+//	pr.Path = path
+//	fileName := pathUtil.Base(path)
+//	ext := filepath.Ext(fileName)
+//	pr.Name = fileName[0:len(fileName)-len(ext)]
+//}
 
 // Clean override untrusted fields
 func (pr *ProbeResult) Clean(){
-	pr.Path = ""
-	pr.Name = ""
+//	pr.Path = ""
+//	pr.Name = ""
 	pr.Timestamp = time.Now().Unix()
 	pr.ExitCode = 0
 	pr.Stdout = ""
